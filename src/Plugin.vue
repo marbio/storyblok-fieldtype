@@ -1,39 +1,80 @@
 <template>
   <div>
-    Google snippet preview:
-    <div class="p-metatags__preview">
-      <div class="p-metatags__google-title">{{ model.title || 'Your title' }}</div>
-      <div class="p-metatags__google-link">yoursite.com/example</div>
-      <div class="p-metatags__google-description">{{ model.description || 'Your description' }}</div>
-    </div>
-    <div class="uk-form-row">
-      <label>Meta Title</label>
-      <input type="text" placeholder="Your title" v-model="model.title" class="uk-width-1-1">
-    </div>
-
-    <div class="uk-form-row">
-      <label>Meta description</label>
-      <textarea rows="4" placeholder="Your description" v-model="model.description" class="uk-width-1-1"></textarea>
+    <form class="uk-form uk-margin-bottom" @submit.prevent="search" v-if="!modalIsOpen">
+      <div class="uk-margin">
+        <input class="uk-input uk-form-width-medium" v-model="query" placeholder="Search products" />
+        <button class="uk-button uk-button-default" type="submit">Search</button>
+      </div>
+    </form>
+    <div class="uk-flex uk-flex-wrap" v-if="modalIsOpen">
+      <div slot="actions">
+          <a class="uk-button" @click.prevent="closeSelection">
+            <i class="uk-icon-close"></i> Close Selection
+          </a>
+        </div>
+      <div v-for="product in products.items" :key="product.sku" style="cursor:pointer;" class="uk-margin-bottom flex">
+        <img 
+          :src="product.image.url" />
+        <p>{{product.name}}</p>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
+import {getProductsBySearchTerm} from './plugins/query';
+
 export default {
   mixins: [window.Storyblok.plugin],
+  data() {
+    return {
+      products: [],
+      query: '',
+      modalIsOpen: false,
+    }
+  },
   methods: {
+
+    search(){
+      if (this.query === '') {
+        this.products = []
+        return
+      }
+      fetch(process.env.VUE_APP_GRAPHQL_ENDPOINT + new URLSearchParams(getProductsBySearchTerm(this.query)),{
+        headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Content-Type': 'application/json',
+          }
+        })
+        .then(response => response.json())
+        .then(result => {
+          this.products = result.data.products;
+          this.model.products = this.products.items;
+          this.model.query = this.query;
+        });
+        this.modalIsOpen = true;
+        this.$emit('toggle-modal', true);
+    },
+
     initWith() {
       return {
         // needs to be equal to your storyblok plugin name
-        plugin: 'my-plugin-name',
-        title: '',
-        description: ''
+        plugin: 'integration-field-test-marbio',
+        query: 'Hello World!',
+        products: []
       }
     },
+
     pluginCreated() {
       // eslint-disable-next-line
       console.log('View source and customize: https://github.com/storyblok/storyblok-fieldtype')
-    }
+      console.log('env var ----> '+ process.env.VUE_APP_GRAPHQL_ENDPOINT)
+    },
+
+    closeSelection() {
+      this.modalIsOpen = false
+      this.$emit('toggle-modal', false)
+    },
   },
   watch: {
     'model': {
@@ -45,21 +86,3 @@ export default {
   }
 }
 </script>
-
-<style>
-  .p-metatags__google-title {
-    color: blue;
-    text-decoration: underline;
-  }
-
-  .p-metatags__google-link {
-    color: green;
-  }
-
-  .p-metatags__preview {
-    margin: 5px 0 15px;
-    padding: 10px;
-    color: #000;
-    background: #FFF;
-  }
-</style>

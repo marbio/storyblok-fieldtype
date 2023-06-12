@@ -33,3 +33,9 @@ npm run lint
 
 ### Customize configuration
 https://www.storyblok.com/docs/Guides/Creating-a-field-type-plugin#how-to-develop-plugins-locally
+
+### Integration with Magento2
+Create a .env file and put VUE_APP_GRAPHQL_ENDPOINT variable, for example:
+```
+VUE_APP_GRAPHQL_ENDPOINT=https://<your-magento-url>/graphql?
+```
