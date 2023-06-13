@@ -1,60 +1,38 @@
 <template>
   <div>
-    <form class="uk-form uk-margin-bottom" @submit.prevent="search" v-if="!modalIsOpen">
-      <div class="uk-margin">
+
+    <div v-if="!modalIsOpen">
+      <p class="uk-text-bold">Search by term</p>
+      <div class="uk-flex uk-flex-center">
         <input class="uk-input uk-form-width-medium" v-model="query" placeholder="Search products" />
-        <button class="uk-button uk-button-default" type="submit">Search</button>
+        <button class="uk-button uk-width-1-1" @click.prevent=openSelection>
+          <span uk-icon="arrow-right"></span>
+        </button>
       </div>
-    </form>
-    <div class="uk-flex uk-flex-wrap" v-if="modalIsOpen">
-      <div slot="actions">
-          <a class="uk-button" @click.prevent="closeSelection">
-            <i class="uk-icon-close"></i> Close Selection
-          </a>
-        </div>
-      <div v-for="product in products.items" :key="product.sku" style="cursor:pointer;" class="uk-margin-bottom flex">
-        <img 
-          :src="product.image.url" />
-        <p>{{product.name}}</p>
-      </div>
+        <p uk-alert v-if="queryEmpty">Inserisci un termine di ricerca...</p>
+      <hr class="uk-divider-icon">
+    </div>
+    <div class="uk-form" v-if="modalIsOpen">
+      <IntegrationSelection :query=query :close=closeSelection></IntegrationSelection>      
     </div>
   </div>
 </template>
 
 <script>
-import {getProductsBySearchTerm} from './plugins/query';
+import IntegrationSelection from './IntegrationSelection'
 
 export default {
   mixins: [window.Storyblok.plugin],
   data() {
     return {
-      products: [],
       query: '',
       modalIsOpen: false,
+      queryEmpty: false,
     }
   },
   methods: {
 
-    search(){
-      if (this.query === '') {
-        this.products = []
-        return
-      }
-      fetch(process.env.VUE_APP_GRAPHQL_ENDPOINT + new URLSearchParams(getProductsBySearchTerm(this.query)),{
-        headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Content-Type': 'application/json',
-          }
-        })
-        .then(response => response.json())
-        .then(result => {
-          this.products = result.data.products;
-          this.model.products = this.products.items;
-          this.model.query = this.query;
-        });
-        this.modalIsOpen = true;
-        this.$emit('toggle-modal', true);
-    },
+
 
     initWith() {
       return {
@@ -66,15 +44,28 @@ export default {
     },
 
     pluginCreated() {
-      // eslint-disable-next-line
-      console.log('View source and customize: https://github.com/storyblok/storyblok-fieldtype')
-      console.log('env var ----> '+ process.env.VUE_APP_GRAPHQL_ENDPOINT)
+      this.$sb.getScript('https://cdn.jsdelivr.net/npm/uikit@3.16.21/dist/js/uikit.min.js', () => {
+        this.$sb.getScript('https://cdn.jsdelivr.net/npm/uikit@3.16.21/dist/js/uikit-icons.min.js');
+      })
+    },
+
+    openSelection() {
+      if(this.query!=='') {
+        this.queryEmpty = false;
+        this.modalIsOpen = true;
+        this.$emit('toggle-modal', true);
+      } else {
+        this.queryEmpty = true;
+      }
     },
 
     closeSelection() {
       this.modalIsOpen = false
       this.$emit('toggle-modal', false)
     },
+  },
+  components: {
+    IntegrationSelection
   },
   watch: {
     'model': {
@@ -86,3 +77,6 @@ export default {
   }
 }
 </script>
+<style>
+@import 'https://cdn.jsdelivr.net/npm/uikit@3.16.21/dist/css/uikit.min.css';
+</style>
